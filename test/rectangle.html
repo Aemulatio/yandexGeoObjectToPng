@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test</title>
+  <script src="https://api-maps.yandex.ru/2.1/?&lang=ru_RU" type="text/javascript">
+  </script>
+</head>
+<body>
+<div id="map" style="width: 600px; height: 400px"></div>
+<button id="btn">CLICK</button>
+<script>
+  window.ymaps.ready(init);
+
+  function init() {
+    const myMap = new window.ymaps.Map("map", {
+      center: [55.674, 37.601],
+      zoom: 11
+    });
+
+    const myRectangle = new window.ymaps.Rectangle([
+      [55.66, 37.60],
+      [55.71, 37.69]
+    ], {
+      //Свойства
+      hintContent: "Меня перетаскивать нельзя!",
+      balloonContent: "Прямоугольник 1"
+    }, {
+      fillColor: "#7df9ff33",
+      fillOpacity: 0.5,
+      strokeColor: "#0000FF",
+      strokeOpacity: 0.5,
+      strokeWidth: 2,
+      borderRadius: 6
+    });
+
+    myMap.geoObjects.add(myRectangle);
+
+    document.querySelector("#btn").addEventListener("click", () => {
+      // Draw(myRectangle)
+      const png = new Geo2Png(myRectangle, 5, false, true);
+      png.createPng();
+      console.log(png);
+    });
+    // console.log(png)
+  }
+</script>
+<script src="../lib/script.js"></script>
+<script src="../lib/index.js"></script>
+</body>
+</html>
