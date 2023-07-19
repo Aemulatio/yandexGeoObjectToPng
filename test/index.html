@@ -52,7 +52,7 @@
 		document.querySelector("#btn").addEventListener("click", () => {
 			Draw(myRectangle)
 		})
-		const png = new Geo2Png(myRectangle, 0)
+		const png = new Geo2Png(myRectangle, 5, false, true)
 		png.createPng()
 		console.log(png)
 		// console.log(png)
