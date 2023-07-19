@@ -1,6 +1,12 @@
-import type { GeoObject, IPixelPolygonGeometry, Map } from "yandex-maps";
+import type {
+  GeoObject,
+  IPixelPolygonGeometry,
+  IPolygonGeometry,
+  Map,
+} from "yandex-maps";
 import { Polygon } from "yandex-maps";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class Geo2Png {
   _geoObject!: GeoObject;
   _canvasId: string = "canvas_" + Math.random().toString(36).substring(2, 7);
@@ -69,13 +75,19 @@ class Geo2Png {
         avoidFractionalZoom: false,
       },
     );
-    map.geoObjects.add(this.geoObject);
+    const Polygon = new window.ymaps.Polygon(
+      (this.geoObject.geometry as IPolygonGeometry)?.getCoordinates(),
+      {},
+      this.geoObject.options.getAll(),
+    );
+    map.geoObjects.add(Polygon);
     return [map, mapContainer];
   }
 
   createPng() {
+    if (!this.geoObject || !this.geoObject.geometry) return;
+    console.log(this.geoObject.geometry.getType());
     if (this.zoomToBounds) {
-      if (!this.geoObject || !this.geoObject.geometry) return;
       if (!("getPixelGeometry" in this.geoObject.geometry)) return;
       const bounds = this.geoObject.geometry.getBounds() as number[][];
 
@@ -161,11 +173,11 @@ class Geo2Png {
       ]);
 
     const canvasHeight = Math.round(
-      Math.max(...pixelCoordinates.flatMap((c) => c[1])),
-    );
-    const canvasWidth = Math.round(
-      Math.max(...pixelCoordinates.flatMap((c) => c[0])),
-    );
+        Math.max(...pixelCoordinates.flatMap((c) => c[1])),
+      ),
+      canvasWidth = Math.round(
+        Math.max(...pixelCoordinates.flatMap((c) => c[0])),
+      );
 
     canvas.width = canvasWidth + this.padding;
     canvas.height = canvasHeight + this.padding;
