@@ -49,6 +49,13 @@ class Geo2Png {
     return this._download;
   }
 
+  /**
+   *  @param geoObject - Объект с карты, который нужно перерисовать
+   *  @param padding - Расстояние от границ канваса до объекта
+   *  @param download - Скачивать ли изображение после того как отрисуется
+   *  @param zoomToBounds - Рисовать с текущим зумом или вписать в квадрат со стороной 500px?
+   *
+   * */
   constructor(
     geoObject: GeoObject,
     padding: number = 10,
