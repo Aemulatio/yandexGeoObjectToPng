@@ -7,7 +7,7 @@ import type {
 } from "yandex-maps";
 import { Polygon } from "yandex-maps";
 
-interface Config {
+interface Config extends Object {
   fillColor: string;
   fillOpacity: number;
   strokeColor: string;
@@ -192,7 +192,7 @@ class Geo2Png {
       canvas.height = canvasHeight + this.padding;
       const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-      const config = this.geoObject.options.getAll();
+      const config = this.geoObject.options.getAll() as Config;
 
       console.log(config);
       const strokeStyle =
