@@ -307,6 +307,9 @@ class Geo2Png {
     return returnValue;
   };
 
+  /**
+   * Определяет цветовое пространство
+   * */
   #spotColorSpace(color: string): "hexa" | "hex" | "rgba" | "rgb" {
     //TODO: увеличить количество поддерживаемых цветовых пространств
     if (color.startsWith("#"))
@@ -315,5 +318,12 @@ class Geo2Png {
     if (color.startsWith("rgba")) return "rgba";
     if (color.startsWith("rgb")) return "rgb";
     throw new Error("Цветовое пространство не поддерживается");
+  }
+
+  #recalculateAlpha(color: string, additionalOpacity: string): string {
+    return (
+      (parseInt(color.slice(7), 16) / 255) *
+      Number(additionalOpacity)
+    ).toString();
   }
 }
