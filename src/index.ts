@@ -76,7 +76,10 @@ class Geo2Png {
     return canvas;
   }
 
-  _createMap(bounds: number[][]): [Map, HTMLDivElement] | undefined {
+  _createMap(
+    bounds: number[][],
+    type: "Polygon" | "Rectangle",
+  ): [Map, HTMLDivElement] | undefined {
     if (!("ymaps" in window)) return;
     const mapContainer = document.createElement("div");
     mapContainer.setAttribute("id", this.mapId);
@@ -92,12 +95,21 @@ class Geo2Png {
         avoidFractionalZoom: false,
       },
     );
-    const Polygon = new window.ymaps.Polygon(
-      (this.geoObject.geometry as IPolygonGeometry)?.getCoordinates(),
-      {},
-      this.geoObject.options.getAll(),
-    );
-    map.geoObjects.add(Polygon);
+    if (type === "Polygon") {
+      const Polygon = new window.ymaps.Polygon(
+        (this.geoObject.geometry as IPolygonGeometry)?.getCoordinates(),
+        {},
+        this.geoObject.options.getAll(),
+      );
+      map.geoObjects.add(Polygon);
+    } else {
+      const Polygon = new window.ymaps.Rectangle(
+        (this.geoObject.geometry as IPolygonGeometry)?.getCoordinates(),
+        {},
+        this.geoObject.options.getAll(),
+      );
+      map.geoObjects.add(Polygon);
+    }
     return [map, mapContainer];
   }
 
@@ -109,7 +121,7 @@ class Geo2Png {
         if (!("getPixelGeometry" in this.geoObject.geometry)) return;
         const bounds = this.geoObject.geometry.getBounds() as number[][];
 
-        const [map, mapContainer] = this._createMap(bounds) as [
+        const [map, mapContainer] = this._createMap(bounds, "Polygon") as [
           Map,
           HTMLDivElement,
         ];
@@ -167,63 +179,122 @@ class Geo2Png {
         this._withoutZoom();
       }
     } else {
-      if (!("getPixelGeometry" in this.geoObject.geometry)) return;
+      if (this.zoomToBounds) {
+        //rectangle
+        const bounds = this.geoObject.geometry.getBounds() as number[][];
 
-      const pixelBounds = this.geoObject.geometry
-        .getPixelGeometry()
-        .getBounds() as number[][];
+        const [map, mapContainer] = this._createMap(bounds, "Rectangle") as [
+          Map,
+          HTMLDivElement,
+        ];
+        const object = map.geoObjects.getIterator().getNext() as GeoObject;
+        const pixelBounds = object.geometry
+          ?.getPixelGeometry()
+          .getBounds() as number[][];
 
-      const deltaX = Math.min(pixelBounds[0][0], pixelBounds[1][0]);
-      const deltaY = Math.min(pixelBounds[0][1], pixelBounds[1][1]);
+        const deltaX = Math.min(pixelBounds[0][0], pixelBounds[1][0]);
+        const deltaY = Math.min(pixelBounds[0][1], pixelBounds[1][1]);
+        const pixelCoordinates = (
+          object.geometry?.getPixelGeometry() as IPixelRectangleGeometry
+        )
+          .getCoordinates()
+          .map((point) => [
+            point[0] - deltaX + this.padding,
+            point[1] - deltaY + this.padding,
+          ]);
 
-      const canvas = this._createCanvas();
+        const canvasHeight = Math.round(Math.max(...pixelCoordinates.flat())),
+          canvasWidth = Math.round(Math.max(...pixelCoordinates.flat()));
+        const canvas = this._createCanvas();
 
-      const pixelCoordinates = (
-        this.geoObject.geometry?.getPixelGeometry() as IPixelRectangleGeometry
-      )
-        .getCoordinates()
-        .map((point) => [
-          point[0] - deltaX + this.padding,
-          point[1] - deltaY + this.padding,
-        ]);
+        canvas.width = canvasWidth + this.padding;
+        canvas.height = canvasHeight + this.padding;
+        const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-      console.log(pixelCoordinates, deltaX, deltaY);
-      const canvasHeight = Math.round(
-          Math.max(...pixelCoordinates.flatMap((c) => c[1])),
-        ),
-        canvasWidth = Math.round(
-          Math.max(...pixelCoordinates.flatMap((c) => c[0])),
+        const config = this.geoObject.options.getAll();
+
+        ctx.strokeStyle =
+          "strokeColor" in config ? (config?.strokeColor as string) : "#0000FF";
+        ctx.lineWidth =
+          "strokeWidth" in config ? (config.strokeWidth as number) : 2;
+        ctx.fillStyle =
+          "fillColor" in config ? (config.fillColor as string) : "#7df9ff33";
+
+        console.log(pixelCoordinates);
+        const startPoint = [pixelCoordinates[0][0], pixelCoordinates[1][1]],
+          width = pixelCoordinates[1][0] - pixelCoordinates[0][0],
+          height = pixelCoordinates[0][1] - pixelCoordinates[1][1];
+        ctx.beginPath();
+        ctx.roundRect(
+          startPoint[0],
+          startPoint[1],
+          width,
+          height,
+          config?.borderRadius || 0,
         );
 
-      canvas.width = canvasWidth + this.padding;
-      canvas.height = canvasHeight + this.padding;
-      const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+        ctx.stroke();
+        ctx.fill();
+      } else {
+        if (!("getPixelGeometry" in this.geoObject.geometry)) return;
 
-      const config = this.geoObject.options.getAll();
+        const pixelBounds = this.geoObject.geometry
+          .getPixelGeometry()
+          .getBounds() as number[][];
 
-      console.log(config);
-      const strokeStyle =
-        this._calculateStyle(config, "strokeColor", "strokeOpacity") ||
-        "rgba(0,0,255,0.1)";
+        const deltaX = Math.min(pixelBounds[0][0], pixelBounds[1][0]);
+        const deltaY = Math.min(pixelBounds[0][1], pixelBounds[1][1]);
 
-      console.log("strokeStyle: ", strokeStyle);
-      ctx.strokeStyle = strokeStyle;
-      ctx.lineWidth =
-        "strokeWidth" in config ? (config.strokeWidth as number) : 2;
-      ctx.fillStyle =
-        this._calculateStyle(config, "fillColor", "fillOpacity") || "#7df9ff33";
+        const canvas = this._createCanvas();
 
-      ctx.beginPath();
-      ctx.roundRect(
-        pixelCoordinates[0][0],
-        pixelCoordinates[0][1],
-        pixelCoordinates[1][0] - pixelCoordinates[0][0],
-        pixelCoordinates[1][1] - pixelCoordinates[0][1],
-        "borderRadius" in config ? (config.borderRadius as number) : 0,
-      );
+        const pixelCoordinates = (
+          this.geoObject.geometry?.getPixelGeometry() as IPixelRectangleGeometry
+        )
+          .getCoordinates()
+          .map((point) => [
+            point[0] - deltaX + this.padding,
+            point[1] - deltaY + this.padding,
+          ]);
 
-      ctx.stroke();
-      ctx.fill();
+        console.log(pixelCoordinates, deltaX, deltaY);
+        const canvasHeight = Math.round(
+            Math.max(...pixelCoordinates.flatMap((c) => c[1])),
+          ),
+          canvasWidth = Math.round(
+            Math.max(...pixelCoordinates.flatMap((c) => c[0])),
+          );
+
+        canvas.width = canvasWidth + this.padding;
+        canvas.height = canvasHeight + this.padding;
+        const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+        const config = this.geoObject.options.getAll();
+
+        console.log(config);
+        const strokeStyle =
+          this._calculateStyle(config, "strokeColor", "strokeOpacity") ||
+          "rgba(0,0,255,0.1)";
+
+        console.log("strokeStyle: ", strokeStyle);
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth =
+          "strokeWidth" in config ? (config.strokeWidth as number) : 2;
+        ctx.fillStyle =
+          this._calculateStyle(config, "fillColor", "fillOpacity") ||
+          "#7df9ff33";
+
+        ctx.beginPath();
+        ctx.roundRect(
+          pixelCoordinates[0][0],
+          pixelCoordinates[0][1],
+          pixelCoordinates[1][0] - pixelCoordinates[0][0],
+          pixelCoordinates[1][1] - pixelCoordinates[0][1],
+          "borderRadius" in config ? (config.borderRadius as number) : 0,
+        );
+
+        ctx.stroke();
+        ctx.fill();
+      }
     }
   }
 
