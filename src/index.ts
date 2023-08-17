@@ -306,4 +306,14 @@ class Geo2Png {
     }
     return returnValue;
   };
+
+  #spotColorSpace(color: string): "hexa" | "hex" | "rgba" | "rgb" {
+    //TODO: увеличить количество поддерживаемых цветовых пространств
+    if (color.startsWith("#"))
+      if (color.length === 9 || color.length === 5) return "hexa";
+      else return "hex";
+    if (color.startsWith("rgba")) return "rgba";
+    if (color.startsWith("rgb")) return "rgb";
+    throw new Error("Цветовое пространство не поддерживается");
+  }
 }
