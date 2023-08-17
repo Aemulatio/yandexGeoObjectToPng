@@ -287,7 +287,7 @@ class Geo2Png {
     if (colorProperty in config) {
       console.log("stroke");
       returnValue = config[colorProperty];
-      if ("strokeOpacity" in config) {
+      if (opacityProperty in config) {
         if (returnValue.length === 9) {
           const hex = config[colorProperty];
           const opacity =
