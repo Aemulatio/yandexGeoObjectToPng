@@ -184,20 +184,7 @@ class Geo2Png {
           "fillColor" in config ? (config.fillColor as string) : "#7df9ff33";
 
         console.log(pixelCoordinates);
-        const startPoint = [pixelCoordinates[0][0], pixelCoordinates[1][1]],
-          width = pixelCoordinates[1][0] - pixelCoordinates[0][0],
-          height = pixelCoordinates[0][1] - pixelCoordinates[1][1];
-        ctx.beginPath();
-        ctx.roundRect(
-          startPoint[0],
-          startPoint[1],
-          width,
-          height,
-          config?.borderRadius || 0,
-        );
-
-        ctx.stroke();
-        ctx.fill();
+        this._drawRectangle(pixelCoordinates, ctx, config);
       } else {
         if (!("getPixelGeometry" in this.geoObject.geometry)) return;
 
@@ -246,17 +233,7 @@ class Geo2Png {
           this._calculateStyle(config, "fillColor", "fillOpacity") ||
           "#7df9ff33";
 
-        ctx.beginPath();
-        ctx.roundRect(
-          pixelCoordinates[0][0],
-          pixelCoordinates[0][1],
-          pixelCoordinates[1][0] - pixelCoordinates[0][0],
-          pixelCoordinates[1][1] - pixelCoordinates[0][1],
-          "borderRadius" in config ? (config.borderRadius as number) : 0,
-        );
-
-        ctx.stroke();
-        ctx.fill();
+        this._drawRectangle(pixelCoordinates, ctx, config);
       }
     }
   }
@@ -317,6 +294,27 @@ class Geo2Png {
     // console.log(canvas.toDataURL());
 
     // document.body.removeChild(canvas);
+  }
+
+  _drawRectangle(
+    pixelCoordinates: number[][],
+    ctx: CanvasRenderingContext2D,
+    config: Config,
+  ) {
+    const startPoint = [pixelCoordinates[0][0], pixelCoordinates[1][1]],
+      width = pixelCoordinates[1][0] - pixelCoordinates[0][0],
+      height = pixelCoordinates[0][1] - pixelCoordinates[1][1];
+    ctx.beginPath();
+    ctx.roundRect(
+      startPoint[0],
+      startPoint[1],
+      width,
+      height,
+      config?.borderRadius || 0,
+    );
+
+    ctx.stroke();
+    ctx.fill();
   }
 
   _zoomed() {
