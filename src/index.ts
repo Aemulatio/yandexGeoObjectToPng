@@ -16,6 +16,8 @@ interface Config {
   borderRadius: number;
 }
 
+type AvailableGeoObjectsType = "Polygon" | "Rectangle";
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class Geo2Png {
   _geoObject!: GeoObject;
@@ -78,7 +80,7 @@ class Geo2Png {
 
   _createMap(
     bounds: number[][],
-    type: "Polygon" | "Rectangle",
+    type: AvailableGeoObjectsType,
   ): [Map, HTMLDivElement] | undefined {
     if (!("ymaps" in window)) return;
     const mapContainer = document.createElement("div");
@@ -118,29 +120,9 @@ class Geo2Png {
     console.log(this.geoObject.geometry.getType());
     if (this.geoObject.geometry.getType() === "Polygon") {
       if (this.zoomToBounds) {
+        if (!this.geoObject || !this.geoObject.geometry) return;
         if (!("getPixelGeometry" in this.geoObject.geometry)) return;
-        const bounds = this.geoObject.geometry.getBounds() as number[][];
-
-        const [map, mapContainer] = this._createMap(bounds, "Polygon") as [
-          Map,
-          HTMLDivElement,
-        ];
-        const object = map.geoObjects.getIterator().getNext() as Polygon;
-
-        const pixelBounds = object.geometry
-          ?.getPixelGeometry()
-          .getBounds() as number[][];
-
-        const deltaX = Math.min(pixelBounds[0][0], pixelBounds[1][0]);
-        const deltaY = Math.min(pixelBounds[0][1], pixelBounds[1][1]);
-        const pixelCoordinates = (
-          object.geometry?.getPixelGeometry() as IPixelPolygonGeometry
-        )
-          .getCoordinates()[0]
-          .map((point) => [
-            point[0] - deltaX + this.padding,
-            point[1] - deltaY + this.padding,
-          ]);
+        const pixelCoordinates = this._zoomed() as number[][];
 
         const canvasHeight = Math.round(
             Math.max(...pixelCoordinates.flatMap((c) => c[1])),
@@ -154,7 +136,7 @@ class Geo2Png {
         canvas.height = canvasHeight + this.padding;
         const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-        const config = this.geoObject.options.getAll();
+        const config = this.geoObject.options.getAll() as Config;
 
         ctx.strokeStyle =
           "strokeColor" in config ? (config?.strokeColor as string) : "#0000FF";
@@ -181,28 +163,9 @@ class Geo2Png {
     } else {
       if (this.zoomToBounds) {
         //rectangle
-        const bounds = this.geoObject.geometry.getBounds() as number[][];
-
-        const [map, mapContainer] = this._createMap(bounds, "Rectangle") as [
-          Map,
-          HTMLDivElement,
-        ];
-        const object = map.geoObjects.getIterator().getNext() as GeoObject;
-        const pixelBounds = object.geometry
-          ?.getPixelGeometry()
-          .getBounds() as number[][];
-
-        const deltaX = Math.min(pixelBounds[0][0], pixelBounds[1][0]);
-        const deltaY = Math.min(pixelBounds[0][1], pixelBounds[1][1]);
-        const pixelCoordinates = (
-          object.geometry?.getPixelGeometry() as IPixelRectangleGeometry
-        )
-          .getCoordinates()
-          .map((point) => [
-            point[0] - deltaX + this.padding,
-            point[1] - deltaY + this.padding,
-          ]);
-
+        if (!this.geoObject || !this.geoObject.geometry) return;
+        if (!("getPixelGeometry" in this.geoObject.geometry)) return;
+        const pixelCoordinates = this._zoomed() as number[][];
         const canvasHeight = Math.round(Math.max(...pixelCoordinates.flat())),
           canvasWidth = Math.round(Math.max(...pixelCoordinates.flat()));
         const canvas = this._createCanvas();
@@ -211,7 +174,7 @@ class Geo2Png {
         canvas.height = canvasHeight + this.padding;
         const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-        const config = this.geoObject.options.getAll();
+        const config = this.geoObject.options.getAll() as Config;
 
         ctx.strokeStyle =
           "strokeColor" in config ? (config?.strokeColor as string) : "#0000FF";
@@ -268,7 +231,7 @@ class Geo2Png {
         canvas.height = canvasHeight + this.padding;
         const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-        const config = this.geoObject.options.getAll();
+        const config = this.geoObject.options.getAll() as Config;
 
         console.log(config);
         const strokeStyle =
@@ -354,6 +317,41 @@ class Geo2Png {
     // console.log(canvas.toDataURL());
 
     // document.body.removeChild(canvas);
+  }
+
+  _zoomed() {
+    if (!this.geoObject || !this.geoObject.geometry) return;
+    if (!("getPixelGeometry" in this.geoObject.geometry)) return;
+    const bounds = this.geoObject.geometry.getBounds() as number[][];
+    const type = this.geoObject.geometry.getType() as AvailableGeoObjectsType;
+    const [map, mapContainer] = this._createMap(bounds, type) as [
+      Map,
+      HTMLDivElement,
+    ];
+    const object = map.geoObjects
+      .getIterator()
+      .getNext() as typeof this.geoObject;
+    const pixelBounds = object.geometry
+      ?.getPixelGeometry()
+      .getBounds() as number[][];
+
+    const deltaX = Math.min(pixelBounds[0][0], pixelBounds[1][0]);
+    const deltaY = Math.min(pixelBounds[0][1], pixelBounds[1][1]);
+
+    if (type === "Polygon") {
+      return (object.geometry?.getPixelGeometry() as IPixelPolygonGeometry)
+        .getCoordinates()[0]
+        .map((point) => [
+          point[0] - deltaX + this.padding,
+          point[1] - deltaY + this.padding,
+        ]);
+    }
+    return (object.geometry?.getPixelGeometry() as IPixelRectangleGeometry)
+      .getCoordinates()
+      .map((point) => [
+        point[0] - deltaX + this.padding,
+        point[1] - deltaY + this.padding,
+      ]);
   }
 
   _calculateStyle = (
