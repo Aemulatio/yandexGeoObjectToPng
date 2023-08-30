@@ -104,6 +104,7 @@ class Geo2Png {
       );
       map.geoObjects.add(Polygon);
     } else {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       const Polygon = new window.ymaps.Rectangle(
         (this.geoObject.geometry as IPolygonGeometry)?.getCoordinates(),
